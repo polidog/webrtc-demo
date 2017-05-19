@@ -87,9 +87,15 @@ debug@2.6.4:
   dependencies:
     ms "0.7.3"
 
-debug@2.6.7, debug@~2.6.4, debug@~2.6.6:
+debug@2.6.7:
   version "2.6.7"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.7.tgz#92bad1f6d05bbb6bba22cca88bcd0ec894c2861e"
+  dependencies:
+    ms "2.0.0"
+
+debug@~2.6.4, debug@~2.6.6:
+  version "2.6.8"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.8.tgz#e731531ca2ede27d188222427da17821d68ff4fc"
   dependencies:
     ms "2.0.0"
 
@@ -114,12 +120,12 @@ encodeurl@~1.0.1:
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-1.0.1.tgz#79e3d58655346909fe6f0f45a5de68103b294d20"
 
 engine.io-client@~3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/engine.io-client/-/engine.io-client-3.1.0.tgz#1d6884edea9fad86e4b2507748656c2394ad4c63"
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/engine.io-client/-/engine.io-client-3.1.1.tgz#415a9852badb14fa008fa3ef1e31608db6761325"
   dependencies:
     component-emitter "1.2.1"
     component-inherit "0.0.3"
-    debug "2.6.4"
+    debug "~2.6.4"
     engine.io-parser "~2.1.1"
     has-cors "1.1.0"
     indexof "0.0.1"

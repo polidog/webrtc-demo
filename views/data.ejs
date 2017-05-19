@@ -34,7 +34,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-12">
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">Message</div>
+                <div class="panel-body" id="message-area" style="word-wrap: break-word;">
+
+                </div>
+                <div class="panel-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="message">SendMessage</label>
+                            <input type="text" class="form-control" id="message" placeholder="Message...">
+                            <a href="#" class="btn btn-primary disabled" id="message-btn">send</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-sm-6">
             <div class="panel panel-default">
                 <div class="panel-heading">log</div>
                 <div class="panel-body" id="log-area" style="word-wrap: break-word;"></div>
@@ -70,6 +88,13 @@
         )
     }
 
+    function addMessage(title,message) {
+        $('#message-area').append(
+            '<h4>' + title + '</h4>' +
+            '<p>' + message.replace(/\n/g,'<br>') + '</p>'
+        )
+    }
+
     function createId(myStrong){
         var strong = 1000;
         if (myStrong) strong = myStrong;
@@ -79,7 +104,8 @@
     // ここから
     $(function(){
         var signalingChannel = io.connect('<%= io_path %>');
-        var peer = new RTCPeerConnection({})
+        var options = {"iceServers":[ {"urls":"stun:stun.skyway.io:3478"} ]};
+        var peer = new RTCPeerConnection(options)
 
         var config = {
             audio: true,
@@ -93,8 +119,8 @@
                 video.src = window.URL.createObjectURL(stream);
                 peer.addStream(stream);
             }).catch(function(error){
-                console.log(error)
-            });
+            console.log(error)
+        });
 
         // オファーをする
         $('#offar-btn').on('click', function(event){
@@ -156,6 +182,32 @@
             }
         }
 
+        // dataチャネル
+        var dc = peer.createDataChannel('chat');
+
+        dc.onopen = function(event) {
+            console.log(event)
+            dc.send('つながったよー！');
+            $('#message-btn').removeClass('disabled');
+        }
+
+        dc.onerror = function(error) {
+            addLog('datachanell error:', error)
+        }
+
+        peer.ondatachannel = function(event) {
+            console.log('in')
+            event.channel.onmessage = function(e) {
+                addMessage('remote:', e.data)
+            }
+        }
+
+        $('#message-btn').on('click', function(e){
+            dc.send($('#message').val());
+            addMessage('local:', $('#message').val());
+            $('#message').val("");
+            return false;
+        })
     });
 </script>
 </body>

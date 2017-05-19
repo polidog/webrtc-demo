@@ -81,6 +81,15 @@
         var signalingChannel = io.connect('<%= io_path %>');
         var peer = new RTCPeerConnection({})
 
+        peer.onicecandidate = function(event) {
+            console.log('on icecandidate');
+            console.log(event)
+            if (event.candidate) {
+                addLog('candidate ' + event.candidate.sdpMid + ':',  event.candidate.candidate)
+            }
+
+        };
+
         var config = {
             audio: true,
             video: true
@@ -93,8 +102,21 @@
                 video.src = window.URL.createObjectURL(stream);
                 peer.addStream(stream);
             }).catch(function(error){
-                console.log(error)
-            });
+            console.log(error)
+        });
+
+        // 相手から送られてきた画像をだす
+        if ('peer' in peer) {
+            peer.ontrack = function(event) {
+                var video = document.getElementById('video-remote');
+                video.srcObject = event.streams[0]
+            }
+        } else {
+            peer.onaddstream = function(event) {
+                var video = document.getElementById('video-remote');
+                video.src = window.URL.createObjectURL(event.stream);
+            }
+        }
 
         // オファーをする
         $('#offar-btn').on('click', function(event){
@@ -142,20 +164,6 @@
                 peer.setRemoteDescription(new RTCSessionDescription(answer.desc));
             }
         });
-
-        // 相手から送られてきた画像をだす
-        if ('peer' in peer) {
-            peer.ontrack = function(event) {
-                var video = document.getElementById('video-remote');
-                video.srcObject = event.streams[0]
-            }
-        } else {
-            peer.onaddstream = function(event) {
-                var video = document.getElementById('video-remote');
-                video.src = window.URL.createObjectURL(event.stream);
-            }
-        }
-
     });
 </script>
 </body>

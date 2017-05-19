@@ -6,27 +6,40 @@ var ejs = require('ejs');
 
 const io = require('socket.io').listen(IO_PORT);
 
+const getSocketUrl = function(req, path = "") {
+    const domain = req.headers.host.split(':')[0];
+    return 'http://' + domain + ':' + IO_PORT + path;
+}
+
 app.engine('ejs', ejs.renderFile);
 
 app.get(`/sdp`, (req, res) => {
-    console.log();
-    var domain = req.headers.host.split(':')[0];
-    var io_script_path = "http://" + domain + ':' + IO_PORT + '/socket.io/socket.io.js';
-    var io_path = 'http://' + domain + ':' + IO_PORT;
+    const io_script_path = getSocketUrl(req, '/socket.io/socket.io.js');
+    const io_path = getSocketUrl(req);
     res.render('sdp.ejs',
         {
-            title : 'Express + EJS' ,
-            content: '大分シンプルになった！',
             io_script_path: io_script_path,
             io_path: io_path
         }
     );
-
-    // res.sendFile(__dirname + '/sdp/index.html');
 });
 
 app.get(`/ice`, (req, res) => {
-    res.sendFile(__dirname + '/ice/index.html');
+    const io_script_path = getSocketUrl(req, '/socket.io/socket.io.js');
+    const io_path = getSocketUrl(req);
+    res.render('ice.ejs',{
+        io_script_path: io_script_path,
+        io_path: io_path,
+    })
+});
+
+app.get(`/data`, (req, res) => {
+    const io_script_path = getSocketUrl(req, '/socket.io/socket.io.js');
+    const io_path = getSocketUrl(req);
+    res.render('data.ejs',{
+        io_script_path: io_script_path,
+        io_path: io_path,
+    })
 });
 
 

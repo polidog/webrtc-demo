@@ -10,6 +10,10 @@ app.get(`/sdp`, (req, res) => {
   res.sendFile(__dirname + '/sdp/index.html');
 });
 
+app.get(`/ice`, (req, res) => {
+    res.sendFile(__dirname + '/ice/index.html');
+});
+
 
 io.sockets.on('connection', (socket)=>{
   socket.on('offer', (offer) => {

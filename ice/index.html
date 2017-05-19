@@ -1,0 +1,174 @@
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" >
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+</head>
+
+<body>
+<div class="container">
+    <h1>SDPデモ</h1>
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">Local</div>
+                <div class="panel-body embed-responsive embed-responsive-16by9">
+                    <video id="video-local" autoplay muted class="embed-responsive-item"></video>
+                </div>
+                <div class="panel-footer">
+                    <a href="#" id="offar-btn" class="btn btn-success">offar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">Remote</div>
+                <div class="panel-body embed-responsive embed-responsive-16by9">
+                    <video id="video-remote" autoplay class="embed-responsive-item"></video>
+                </div>
+                <div class="panel-footer">
+                    <a href="#" id="start-btn" class="btn btn-success">Play</a>
+                    <a href="#" id="start-btn" class="btn btn-danger">Stop</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">log</div>
+                <div class="panel-body" id="log-area" style="word-wrap: break-word;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="http://localhost:9001/socket.io/socket.io.js"></script>
+<script>
+    'use strict';
+    navigator.getUserMedia  = navigator.getUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia　|| navigator.webkitGetUserMedia;
+
+    function getUserMedia(options) {
+
+        if ('getUserMedia' in navigator.mediaDevices) {
+            return navigator.mediaDevices.getUserMedia(options)
+        }
+
+        return new Promise(function(resolve, reject){
+            navigator.getUserMedia(options, resolve, reject)
+        });
+
+    }
+
+    function addLog(title,message) {
+        $('#log-area').append(
+            '<h4>' + title + '</h4>' +
+            '<p>' + message.replace(/\n/g,'<br>') + '</p>'
+        )
+    }
+
+    function createId(myStrong){
+        var strong = 1000;
+        if (myStrong) strong = myStrong;
+        return new Date().getTime().toString(16)  + Math.floor(strong*Math.random()).toString(16)
+    }
+
+    // ここから
+    $(function(){
+        var signalingChannel = io.connect('http://localhost:9001/');
+        var peer = new RTCPeerConnection({})
+
+        var config = {
+            audio: true,
+            video: true
+        }
+
+        // Videoをpeerに送る
+        getUserMedia(config)
+            .then(function(stream){
+                var video = document.getElementById('video-local');
+                video.src = window.URL.createObjectURL(stream);
+                peer.addStream(stream);
+            }).catch(function(error){
+            console.log(error)
+        });
+
+        // 相手から送られてきた画像をだす
+        if ('peer' in peer) {
+            peer.ontrack = function(event) {
+                var video = document.getElementById('video-remote');
+                video.srcObject = event.streams[0]
+            }
+        } else {
+            peer.onaddstream = function(event) {
+                var video = document.getElementById('video-remote');
+                video.src = window.URL.createObjectURL(event.stream);
+            }
+        }
+
+        peer.onicecandidate = function(event) {
+            console.log('on icecandidate');
+            console.log(event)
+            if (event.candidate) {
+                addLog('candidate ' + event.candidate.sdpMid + ':',  event.candidate.candidate)
+            }
+
+        };
+
+
+        // オファーをする
+        $('#offar-btn').on('click', function(event){
+
+            if ($(this).hasClass('disabled')) {
+                // すでにボタンが押されている場合
+                return false;
+            }
+            var uuid = createId();
+            $(this).addClass('disabled')
+            $(this).data('uuid', uuid)
+
+            // オファーする
+            peer.createOffer()
+                .then(function(offer){
+                    return peer.setLocalDescription(offer)
+                })
+                .then(function(){
+                    return signalingChannel.emit('offer', {desc: peer.localDescription, id: uuid})
+                });
+
+        })
+
+        // 相手からオファーを受け取り、アンサーを返す
+        signalingChannel.on('offer', function(offer){
+
+            var uuid = offer.id
+            peer.setRemoteDescription(new RTCSessionDescription(offer.desc))
+                .then(function(){
+                    return peer.createAnswer();
+                })
+                .then(function(answer){
+                    addLog('answer', answer.sdp)
+                    signalingChannel.emit('answer', {desc: answer, id: uuid})
+                    return peer.setLocalDescription(answer)
+                })
+            ;
+        });
+
+        // 相手からアンサーを受け取る
+        signalingChannel.on('answer', function(answer){
+            if ($('#offar-btn').data('uuid') == answer.id) {
+                peer.setRemoteDescription(new RTCSessionDescription(answer.desc));
+            }
+        });
+
+        signalingChannel.on('user disconnected', function(){
+            var video = document.getElementById('video-remote');
+            video.src = "";
+        })
+    });
+</script>
+</body>
+</html>
